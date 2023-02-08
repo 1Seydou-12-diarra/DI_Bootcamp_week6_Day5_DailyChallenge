@@ -1,103 +1,57 @@
+<?php session_start();?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Hangman</title>
+</head>
+
+<body>
 <?php
-/*
-    Function Name: fetchWordArray()
-    Parameters: None
-    Return values: Returns an array of characters.
-*/
-    function fetchWordArray($wordFile)
+    include 'config.php';
+    include 'function.php';
+    if (isset($_POST['newWord'])) unset($_SESSION['answer']);
+    if (!isset($_SESSION['answer']))
     {
-        $file = fopen($wordFile,'r');
-           if ($file)
-        {
-            $random_line = null;
-            $line = null;
-            $count = 0;
-            while (($line = fgets($file)) !== false) 
-            {
-                $count++;
-                if(rand() % $count == 0) 
-                {
-                      $random_line = trim($line);
-                }
-        }
-        if (!feof($file)) 
-        {
-            fclose($file);
-            return null;
-        }else 
-        {
-            fclose($file);
-        }
-    }
-        $answer = str_split($random_line);
-        return $answer;
-    }
-/*
-    Function Name: hideCharacters()
-    Parameters: Word whose characters are to be hidden.
-    Return values: Returns a string of characters.
-*/
-    function hideCharacters($answer)
+        $_SESSION['attempts'] = 0;
+        $answer = fetchWordArray($WORDLISTFILE);
+        $_SESSION['answer'] = $answer;
+        $_SESSION['hidden'] = hideCharacters($answer);
+        echo 'Attempts remaining: '.($MAX_ATTEMPTS - $_SESSION['attempts']).'<br>';
+    }else
     {
-        $noOfHiddenChars = floor((sizeof($answer)/2) + 1);
-        $count = 0;
-        $hidden = $answer;
-        while ($count < $noOfHiddenChars )
+        if (isset ($_POST['userInput']))
         {
-            $rand_element = rand(0,sizeof($answer)-2);
-            if( $hidden[$rand_element] != '_' )
-            {
-                $hidden = str_replace($hidden[$rand_element],'_',$hidden,$replace_count);
-                $count = $count + $replace_count;
-            }
+            $userInput = $_POST['userInput'];
+            $_SESSION['hidden'] = checkAndReplace(strtolower($userInput), $_SESSION['hidden'], $_SESSION['answer']);
+            checkGameOver($MAX_ATTEMPTS,$_SESSION['attempts'], $_SESSION['answer'],$_SESSION['hidden']);
         }
-        return $hidden;
+        $_SESSION['attempts'] = $_SESSION['attempts'] + 1;
+        echo 'Attempts remaining: '.($MAX_ATTEMPTS - $_SESSION['attempts'])."<br>";
     }
-/*
-    Function Name: checkAndReplace()
-    Parameters: UserInput, Hidden string and the answer.
-    Return values: Returns a character array.
-*/
-    function checkAndReplace($userInput, $hidden, $answer)
-    {
-        $i = 0;
-        $wrongGuess = true;
-        while($i < count($answer))
-        {
-            if ($answer[$i] == $userInput)
-            {
-                $hidden[$i] = $userInput;
-                $wrongGuess = false;
-            }
-            $i = $i + 1;
-        }
-        if (!$wrongGuess) $_SESSION['attempts'] = $_SESSION['attempts'] - 1;
-        return $hidden;
-    }
-    
-    
-/*
-    Function Name: checkGameOver()
-    Parameters: Maximum attempts, no. of attempts made by user, Hidden string and the answer.
-    Return values: Returns a character array.
-*/
-    function checkGameOver($MAX_ATTEMPTS,$userAttempts, $answer, $hidden)
-    {
-        if ($userAttempts >= $MAX_ATTEMPTS)
-            {
-                echo "Game Over. The correct word was ";
-                foreach ($answer as $letter) echo $letter;
-                echo '<br><form action = "" method = "post"><input type = "submit" name' + 
-                  ' = "newWord" value = "Try another Word"/></form><br>';
-                die();
-            }
-            if ($hidden == $answer)
-            {
-                echo "Game Over. The correct word is indeed ";
-                foreach ($answer as $letter) echo $letter;
-                echo '<br><form action = "" method = "post"><input ' + 
-                  'type = "submit" name = "newWord" value = "Try another Word"/></form><br>';
-                die();
-            }
-    }
+    $hidden = $_SESSION['hidden'];
+    foreach ($hidden as $char) echo $char."  ";
 ?>
+<script type="application/javascript">
+    function validateInput()
+    {
+    var x=document.forms["inputForm"]["userInput"].value;
+    if (x=="" || x==" ")
+      {
+          alert("Please enter a character.");
+          return false;
+      }
+    if (!isNaN(x))
+    {
+        alert("Please enter a character.");
+        return false;
+    }
+}
+</script>
+<form name = "inputForm" action = "" method = "post">
+Your Guess: <input name = "userInput" type = "text" size="1" maxlength="1"  />
+<input type = "submit"  value = "Check" onclick="return validateInput()"/>
+<input type = "submit" name = "newWord" value = "Try another Word"/>
+</form>
+</body>
+</html>
